@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0a0512" />
+  <title>EGGNITE — Caçada no Planeta Xor</title>
+  <link rel="icon" type="image/svg+xml" href="assets/egg.svg" />
+  <link rel="apple-touch-icon" href="assets/egg.svg" />
+  <link rel="stylesheet" href="css/style.css" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <!-- 3D canvas -->
+  <canvas id="game-canvas"></canvas>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <!-- Crosshair -->
+    <div id="crosshair">
+      <span class="ch ch-top"></span>
+      <span class="ch ch-bottom"></span>
+      <span class="ch ch-left"></span>
+      <span class="ch ch-right"></span>
+      <span class="ch ch-dot"></span>
+    </div>
+
+    <!-- Damage / hurt overlay -->
+    <div id="hurt-overlay"></div>
+    <div id="hitmarker"></div>
+
+    <!-- Top bar -->
+    <div id="topbar">
+      <div class="stat" id="wave-stat"><span class="label">ONDA</span><span class="value" id="wave-value">1</span></div>
+      <div class="stat" id="score-stat"><span class="label">PONTOS</span><span class="value" id="score-value">0</span></div>
+      <div class="stat" id="enemies-stat"><span class="label">OVOS</span><span class="value" id="enemies-value">0</span></div>
+    </div>
+
+    <!-- Health bar -->
+    <div id="health-wrap">
+      <div id="health-icon">❤</div>
+      <div id="health-bar"><div id="health-fill"></div></div>
+    </div>
+
+    <!-- Ammo / weapon -->
+    <div id="ammo-wrap">
+      <div id="weapon-name">PISTOLA</div>
+      <div id="ammo-counter"><span id="ammo-current">12</span><span id="ammo-sep">/</span><span id="ammo-reserve">∞</span></div>
+      <div id="reload-hint" class="hidden">RECARREGANDO…</div>
+    </div>
+
+    <!-- Center messages -->
+    <div id="center-msg"></div>
+
+    <!-- ===== MOBILE TOUCH CONTROLS ===== -->
+    <div id="touch-controls" class="hidden">
+      <!-- Movement joystick -->
+      <div id="move-stick" class="joystick">
+        <div class="joy-base"></div>
+        <div class="joy-knob"></div>
+      </div>
+
+      <!-- Right-side action buttons -->
+      <div id="btn-fire" class="touch-btn fire-btn">🔥</div>
+      <div id="btn-aim" class="touch-btn small-btn aim-btn">🎯</div>
+      <div id="btn-reload" class="touch-btn small-btn reload-btn">⟳</div>
+      <div id="btn-jump" class="touch-btn small-btn jump-btn">⤒</div>
+
+      <!-- Weapon switch -->
+      <div id="weapon-switch">
+        <div class="wpn-slot" data-weapon="0">1</div>
+        <div class="wpn-slot" data-weapon="1">2</div>
+        <div class="wpn-slot" data-weapon="2">3</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== START / MENU SCREEN ===== -->
+  <div id="menu" class="overlay-screen">
+    <div class="menu-content">
+      <h1 class="title">EGG<span>NITE</span></h1>
+      <p class="subtitle">Caçada no Planeta Xor-9</p>
+      <div class="lore">
+        Você pousou num mundo distante infestado por <b>Ovomorfos</b> — criaturas
+        em forma de ovo que detonam quando atingidas. Escolha sua arma, recarregue,
+        mire e <b>exploda cada um deles</b> antes que cheguem até você.
+      </div>
+      <button id="start-btn" class="big-btn">INICIAR CAÇADA</button>
+      <div id="controls-help">
+        <div class="help-col" id="help-desktop">
+          <h3>Teclado / Mouse</h3>
+          <ul>
+            <li><b>WASD</b> — mover</li>
+            <li><b>Mouse</b> — mirar</li>
+            <li><b>Clique</b> — atirar</li>
+            <li><b>Botão direito</b> — mira precisa</li>
+            <li><b>R</b> — recarregar</li>
+            <li><b>1 2 3 / Q</b> — trocar arma</li>
+            <li><b>Espaço</b> — pular &nbsp; <b>Shift</b> — correr</li>
+          </ul>
+        </div>
+        <div class="help-col" id="help-mobile">
+          <h3>Toque</h3>
+          <ul>
+            <li><b>Joystick esq.</b> — mover</li>
+            <li><b>Arrastar dir.</b> — mirar</li>
+            <li><b>🔥</b> — atirar &nbsp; <b>🎯</b> — mira precisa</li>
+            <li><b>⟳</b> — recarregar &nbsp; <b>⤒</b> — pular</li>
+            <li><b>1 2 3</b> — trocar arma</li>
+          </ul>
+        </div>
+      </div>
+      <p class="loadnote" id="loadnote">Carregando motor 3D…</p>
+    </div>
+  </div>
+
+  <!-- ===== GAME OVER ===== -->
+  <div id="gameover" class="overlay-screen hidden">
+    <div class="menu-content">
+      <h1 class="title dead">VOCÊ FOI <span>DEVORADO</span></h1>
+      <div class="result">
+        <div>Ovos detonados: <b id="go-kills">0</b></div>
+        <div>Ondas sobrevividas: <b id="go-waves">0</b></div>
+        <div class="finalscore">PONTUAÇÃO: <b id="go-score">0</b></div>
+        <div id="go-best">Recorde: <b>0</b></div>
+      </div>
+      <button id="restart-btn" class="big-btn">CAÇAR NOVAMENTE</button>
+    </div>
+  </div>
+
+  <!-- Tap-to-resume (pointer lock lost on desktop) -->
+  <div id="pause-hint" class="overlay-screen hidden">
+    <div class="menu-content">
+      <h2 class="title small">PAUSADO</h2>
+      <button id="resume-btn" class="big-btn">CONTINUAR</button>
+    </div>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
